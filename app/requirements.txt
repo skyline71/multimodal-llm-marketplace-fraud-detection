@@ -1,0 +1,9 @@
+streamlit
+ultralytics
+sentence-transformers
+torch
+torchvision
+pillow
+requests
+transformers
+chromadb
