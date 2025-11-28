@@ -1,46 +1,44 @@
-# app/modules/ai_detector.py
-
+from transformers import pipeline
 from PIL import Image
-import numpy as np
 
 class AIDetector:
+    def __init__(self):
+        # Инициализируем пайплайн классификации изображений.
+        # Модель автоматически скачается с Hugging Face (около 100-200 МБ)
+        # При первом запуске это займет время!
+        print("Загрузка модели AI Detector...")
+        self.pipe = pipeline("image-classification", model="umm-maybe/AI-image-detector")
+
     def detect_ai_image(self, image: Image.Image) -> dict:
         """
-        Эвристический детектор ИИ-изображений.
-        Основан на типичных признаках:
-        - Очень высокое разрешение
-        - Низкий уровень шума (гладкость)
-        - Отсутствие JPEG-артефактов
+        Определяет, сгенерировано ли изображение ИИ, используя нейросеть.
         """
         if image.mode != "RGB":
             image = image.convert("RGB")
         
-        img_array = np.array(image)
+        # Прогоняем изображение через модель
+        results = self.pipe(image)
         
-        # Признак 1: высокое разрешение (>1024x1024) — частый признак ИИ
-        is_high_res = image.width >= 1024 and image.height >= 1024
+        # Результат приходит в формате списка словарей: [{'label': 'artificial', 'score': 0.99}, ...]
+        # Нам нужно найти score для метки 'artificial' (или 'fake')
         
-        # Признак 2: низкое стандартное отклонение = гладкое изображение
-        std_dev = img_array.std()
-        is_smooth = std_dev < 35  # Эмпирический порог
+        ai_score = 0.0
+        is_ai = False
         
-        # Признак 3: отсутствие JPEG-артефактов (часто в ИИ)
-        # Упрощённо: если формат не JPEG → подозрительно
-        # (но в нашем случае изображения уже в PIL, поэтому пропустим)
+        # Разбираем результаты (обычно там метки 'artificial' и 'real')
+        for res in results:
+            if res['label'].lower() in ['artificial', 'fake']:
+                ai_score = res['score']
         
-        # Оценка
-        ai_score = 0.1
-        if is_high_res and is_smooth:
-            ai_score = 0.9
-        elif is_high_res or is_smooth:
-            ai_score = 0.6
-        
+        # Порог срабатывания (например, 60%)
+        if ai_score > 0.6:
+            is_ai = True
+            explanation = f"Нейросеть обнаружила признаки генерации (уверенность: {ai_score:.2%})"
+        else:
+            explanation = "Изображение классифицировано как естественное."
+
         return {
-            "is_ai_generated": ai_score > 0.7,
+            "is_ai_generated": is_ai,
             "ai_score": round(ai_score, 2),
-            "explanation": (
-                "Высокое разрешение и гладкость изображения указывают на возможную генерацию ИИ"
-                if ai_score > 0.7 else
-                "Изображение выглядит как обычная фотография"
-            )
+            "explanation": explanation
         }

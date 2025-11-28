@@ -7,3 +7,5 @@ pillow
 requests
 transformers
 chromadb
+webdriver-manager
+selenium

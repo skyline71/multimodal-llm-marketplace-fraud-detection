@@ -7,7 +7,7 @@ class RAGLLM:
         self.ollama_url = "http://ollama:11434/api/generate"
         self.model = "qwen:4b"  # 4-bit квантованная версия для RTX 3050
         
-    def generate_report(self, analysis_result: dict) -> str:
+    def generate_report(self, analysis_result: dict, user_text: str) -> str:
         """Генерирует текстовый отчет с помощью LLM"""
         # Формируем контекст для LLM
         context = f"""
@@ -32,7 +32,7 @@ class RAGLLM:
 1. Краткое заключение (1-2 предложения)
 2. Конкретные признаки риска (если есть)
 3. Рекомендации покупателю
-4. Ссылки на похожие случаи (если применимо)
+4. Похожие случаи (если применимо)
 
 Пиши на русском языке, используй формальный стиль, но понятный для обычного пользователя.
 """
@@ -47,7 +47,7 @@ class RAGLLM:
                     "stream": False,
                     "options": {"temperature": 0.3}
                 },
-                timeout=30
+                timeout=300
             )
             
             if response.status_code == 200:
